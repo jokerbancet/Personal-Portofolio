@@ -259,6 +259,14 @@ function SettingsEditor({ data, onSave, showToast }: any) {
               </p>
             </div>
           </div>
+          <div className="pt-6 border-t border-primary/10 space-y-6">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-primary">Footer & Socials</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Input label="LinkedIn URL" value={form.linkedin_url} onChange={v => setForm({...form, linkedin_url: v})} />
+              <Input label="GitHub URL" value={form.github_url} onChange={v => setForm({...form, github_url: v})} />
+              <Input label="Contact Email" value={form.contact_email} onChange={v => setForm({...form, contact_email: v})} />
+            </div>
+          </div>
         </div>
         <button className="bg-primary text-white px-8 py-4 font-bold uppercase tracking-widest hover:bg-black transition-colors flex items-center gap-2">
           <Save size={18} /> Save Changes
@@ -391,14 +399,14 @@ function ExperienceEditor({ data, onUpdate, showToast }: any) {
 }
 
 function ProjectsEditor({ data, onUpdate, showToast }: any) {
-  const [form, setForm] = useState({ title: '', description: '', year: '', url: '' });
+  const [form, setForm] = useState({ title: '', description: '', year: '', project_url: '' });
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     const { error } = await supabase.from('projects').insert([{ ...form, sort_order: data.length }]);
     if (error) showToast(error.message, 'error');
     else {
-      setForm({ title: '', description: '', year: '', url: '' });
+      setForm({ title: '', description: '', year: '', project_url: '' });
       onUpdate();
       showToast('Project added');
     }
@@ -417,7 +425,7 @@ function ProjectsEditor({ data, onUpdate, showToast }: any) {
         <div className="grid grid-cols-2 gap-6">
           <Input label="Title" value={form.title} onChange={v => setForm({...form, title: v})} />
           <Input label="Year" value={form.year} onChange={v => setForm({...form, year: v})} />
-          <Input label="URL" value={form.url} onChange={v => setForm({...form, url: v})} />
+          <Input label="URL" value={form.project_url} onChange={v => setForm({...form, project_url: v})} />
         </div>
         <Input label="Description" value={form.description} onChange={v => setForm({...form, description: v})} textarea />
         <button className="bg-primary text-white px-8 py-3 font-bold uppercase tracking-widest text-xs hover:bg-black transition-colors">

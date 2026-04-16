@@ -16,6 +16,9 @@ interface PortfolioSettings {
   hero_subheadline: string;
   photo_url: string;
   cta_text: string;
+  linkedin_url?: string;
+  github_url?: string;
+  contact_email?: string;
 }
 
 interface Skill {
@@ -35,7 +38,7 @@ interface Project {
   title: string;
   description: string;
   year: string;
-  url: string;
+  project_url: string;
   sort_order: number;
 }
 
@@ -285,7 +288,7 @@ function Portfolio() {
                 </div>
                 
                 <a 
-                  href={project.url} 
+                  href={project.project_url} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-[0.75rem] sm:text-[0.85rem] font-bold uppercase tracking-widest group-hover:text-primary transition-colors"
@@ -351,13 +354,22 @@ function Portfolio() {
       {/* Footer */}
       <footer className="px-6 sm:px-10 md:px-[60px] py-10 sm:py-[40px] border-t border-[#EEEEEE] flex flex-col md:flex-row justify-between items-center md:items-end gap-6 sm:gap-8">
         <div className="flex gap-6 text-[0.75rem] sm:text-[0.85rem] font-bold uppercase tracking-widest">
-          <a href="#" className="hover:opacity-60 transition-opacity">LinkedIn</a>
-          <a href="#" className="hover:opacity-60 transition-opacity">GitHub</a>
-          <a href="#" className="hover:opacity-60 transition-opacity">Dribbble</a>
+          {settings?.linkedin_url && (
+            <a href={settings.linkedin_url} target="_blank" rel="noopener noreferrer" className="hover:opacity-60 transition-opacity">LinkedIn</a>
+          )}
+          {settings?.github_url && (
+            <a href={settings.github_url} target="_blank" rel="noopener noreferrer" className="hover:opacity-60 transition-opacity">GitHub</a>
+          )}
         </div>
         <div className="text-center md:text-right">
           <span className="block text-[0.65rem] sm:text-[0.75rem] text-secondary uppercase tracking-[1px] mb-1">Start a project</span>
-          <strong className="text-sm sm:text-[1rem] font-bold">hello@portfolio.systems</strong>
+          {settings?.contact_email ? (
+            <a href={`mailto:${settings.contact_email}`} className="text-sm sm:text-[1rem] font-bold hover:opacity-60 transition-opacity">
+              {settings.contact_email}
+            </a>
+          ) : (
+            <strong className="text-sm sm:text-[1rem] font-bold">hello@portfolio.systems</strong>
+          )}
         </div>
       </footer>
 
