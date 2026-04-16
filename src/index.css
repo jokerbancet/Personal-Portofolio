@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Helvetica Neue", Arial, sans-serif;
+  
+  --color-primary: #222222;
+  --color-secondary: #7B7B7B;
+  --color-tertiary: #F8F8F8;
+  --color-white: #FFFFFF;
+}
+
+@layer base {
+  body {
+    @apply bg-white text-primary font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .text-display {
+    @apply text-[48px] sm:text-[64px] md:text-[84px] font-extrabold leading-[0.95] tracking-[-1px] sm:tracking-[-3px];
+  }
+}
