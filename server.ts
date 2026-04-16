@@ -22,6 +22,32 @@ async function startServer() {
       appType: "spa",
     });
     app.use(vite.middlewares);
+    
+    // Fallback for dev mode if vite middleware doesn't catch it
+    app.use('*', async (req, res, next) => {
+      try {
+        const url = req.originalUrl;
+        const html = await vite.transformIndexHtml(url, `
+          <!DOCTYPE html>
+          <html lang="en">
+            <head>
+              <meta charset="UTF-8" />
+              <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+              <title>Portfolio</title>
+            </head>
+            <body>
+              <div id="root"></div>
+              <script type="module" src="/src/main.tsx"></script>
+            </body>
+          </html>
+        `);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
+      } catch (e) {
+        vite.ssrFixStacktrace(e as Error);
+        next(e);
+      }
+    });
   } else {
     // Production static serving
     const distPath = path.join(process.cwd(), 'dist');
@@ -29,6 +55,7 @@ async function startServer() {
     
     // SPA Fallback: Send index.html for any unknown routes
     app.get('*', (req, res) => {
+      console.log(`SPA Fallback for: ${req.url}`);
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
