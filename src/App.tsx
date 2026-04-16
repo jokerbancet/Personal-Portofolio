@@ -185,16 +185,39 @@ function Portfolio() {
         </div>
       </nav>
 
-      <main className="flex-1 flex flex-col justify-center">
+      <main className="flex-1 flex flex-col">
         {/* Hero Section */}
-        <section className="px-6 sm:px-10 md:px-[60px]">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-end">
+        <section className="px-6 sm:px-10 md:px-[60px] min-h-[80vh] flex flex-col">
+          <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
+            {/* Text Column */}
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="order-2 lg:order-1 flex flex-col justify-center items-center lg:items-start text-center lg:text-left py-12 lg:py-20"
+            >
+              <h1 className="text-display mb-6 whitespace-pre-line">
+                {settings?.hero_headline || "SYSTEMS OPTIMIZED.\nDATA SCALED."}
+              </h1>
+              <p className="text-lg sm:text-xl md:text-[1.25rem] text-secondary max-w-[500px] mb-10 font-normal leading-[1.5]">
+                {settings?.hero_subheadline || "Architecting robust infrastructure and high-performance data pipelines for enterprise-scale deployments."}
+              </p>
+              <motion.a
+                href="#projects"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="inline-block w-full sm:w-auto text-center bg-primary text-white px-8 sm:px-[40px] py-4 sm:py-[18px] text-[0.9rem] font-bold uppercase tracking-[1px] hover:bg-black transition-colors"
+              >
+                {settings?.cta_text || "View Case Studies"}
+              </motion.a>
+            </motion.div>
+
             {/* Photo Column */}
             <motion.div 
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="order-1 lg:order-2 flex justify-center lg:justify-end"
+              className="order-1 lg:order-2 flex justify-center lg:justify-end items-end"
             >
               <img 
                 src={settings?.photo_url || "https://picsum.photos/seed/professional/800/1000"} 
@@ -202,29 +225,6 @@ function Portfolio() {
                 className="w-full max-w-[480px] aspect-[4/5] object-cover rounded-t-[4px]"
                 referrerPolicy="no-referrer"
               />
-            </motion.div>
-
-            {/* Text Column */}
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-              className="order-2 lg:order-1 pb-12 lg:pb-20"
-            >
-              <h1 className="text-display mb-4 whitespace-pre-line">
-                {settings?.hero_headline || "SYSTEMS OPTIMIZED.\nDATA SCALED."}
-              </h1>
-              <p className="text-lg sm:text-xl md:text-[1.25rem] text-secondary max-w-[500px] mb-8 font-normal leading-[1.5]">
-                {settings?.hero_subheadline || "Architecting robust infrastructure and high-performance data pipelines for enterprise-scale deployments."}
-              </p>
-              <motion.a
-                href="#projects"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="inline-block w-full sm:w-auto text-center bg-primary text-white px-8 sm:px-[40px] py-4 sm:py-[18px] text-[0.9rem] font-bold uppercase tracking-[1px] hover:bg-black transition-colors mb-12 lg:mb-20"
-              >
-                {settings?.cta_text || "View Case Studies"}
-              </motion.a>
             </motion.div>
           </div>
         </section>
