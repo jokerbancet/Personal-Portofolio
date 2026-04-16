@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { motion } from 'motion/react';
-import { Plus, Trash2, Save, LogOut, Settings, Code, Briefcase, Folder, ChevronRight, Upload, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Save, LogOut, Settings, Code, Briefcase, Folder, ChevronRight, Upload, Loader2, Mail } from 'lucide-react';
 
-type Section = 'settings' | 'skills' | 'experience' | 'projects';
+type Section = 'settings' | 'experience' | 'projects' | 'messages';
 
 export default function AdminDashboard() {
   const [session, setSession] = useState<any>(null);
@@ -15,9 +15,9 @@ export default function AdminDashboard() {
 
   // Data states
   const [settings, setSettings] = useState<any>(null);
-  const [skills, setSkills] = useState<any[]>([]);
   const [experiences, setExperiences] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -41,20 +41,20 @@ export default function AdminDashboard() {
   const fetchAllData = async () => {
     const [
       { data: sData },
-      { data: skData },
       { data: eData },
-      { data: pData }
+      { data: pData },
+      { data: mData }
     ] = await Promise.all([
       supabase.from('portfolio_settings').select('*').single(),
-      supabase.from('skills').select('*').order('sort_order'),
       supabase.from('experiences').select('*').order('sort_order'),
-      supabase.from('projects').select('*').order('sort_order')
+      supabase.from('projects').select('*').order('sort_order'),
+      supabase.from('messages').select('*').order('created_at', { ascending: false })
     ]);
 
     setSettings(sData);
-    setSkills(skData || []);
     setExperiences(eData || []);
     setProjects(pData || []);
+    setMessages(mData || []);
   };
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
@@ -127,12 +127,6 @@ export default function AdminDashboard() {
               label="Settings" 
             />
             <SidebarLink 
-              active={activeSection === 'skills'} 
-              onClick={() => setActiveSection('skills')} 
-              icon={<Code size={18} />} 
-              label="Skills" 
-            />
-            <SidebarLink 
               active={activeSection === 'experience'} 
               onClick={() => setActiveSection('experience')} 
               icon={<Briefcase size={18} />} 
@@ -143,6 +137,12 @@ export default function AdminDashboard() {
               onClick={() => setActiveSection('projects')} 
               icon={<Folder size={18} />} 
               label="Projects" 
+            />
+            <SidebarLink 
+              active={activeSection === 'messages'} 
+              onClick={() => setActiveSection('messages')} 
+              icon={<Mail size={18} />} 
+              label="Messages" 
             />
           </nav>
         </div>
@@ -166,9 +166,9 @@ export default function AdminDashboard() {
 
         <div className="max-w-4xl">
           {activeSection === 'settings' && <SettingsEditor data={settings} onSave={fetchAllData} showToast={showToast} />}
-          {activeSection === 'skills' && <SkillsEditor data={skills} onUpdate={fetchAllData} showToast={showToast} />}
           {activeSection === 'experience' && <ExperienceEditor data={experiences} onUpdate={fetchAllData} showToast={showToast} />}
           {activeSection === 'projects' && <ProjectsEditor data={projects} onUpdate={fetchAllData} showToast={showToast} />}
+          {activeSection === 'messages' && <MessagesViewer data={messages} onUpdate={fetchAllData} showToast={showToast} />}
         </div>
       </main>
     </div>
@@ -267,59 +267,18 @@ function SettingsEditor({ data, onSave, showToast }: any) {
               <Input label="Contact Email" value={form.contact_email} onChange={v => setForm({...form, contact_email: v})} />
             </div>
           </div>
+          <div className="pt-6 border-t border-primary/10 space-y-6">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-primary">Contact Section Text</h3>
+            <div className="grid grid-cols-1 gap-6">
+              <Input label="Contact Headline" value={form.contact_headline} onChange={v => setForm({...form, contact_headline: v})} />
+              <Input label="Contact Description" value={form.contact_description} onChange={v => setForm({...form, contact_description: v})} textarea />
+            </div>
+          </div>
         </div>
         <button className="bg-primary text-white px-8 py-4 font-bold uppercase tracking-widest hover:bg-black transition-colors flex items-center gap-2">
           <Save size={18} /> Save Changes
         </button>
       </form>
-    </section>
-  );
-}
-
-function SkillsEditor({ data, onUpdate, showToast }: any) {
-  const [newName, setNewName] = useState('');
-
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const { error } = await supabase.from('skills').insert([{ name: newName, sort_order: data.length }]);
-    if (error) showToast(error.message, 'error');
-    else {
-      setNewName('');
-      onUpdate();
-      showToast('Skill added');
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('skills').delete().eq('id', id);
-    if (error) showToast(error.message, 'error');
-    else onUpdate();
-  };
-
-  return (
-    <section>
-      <h2 className="text-3xl font-extrabold uppercase tracking-tighter mb-8">Skills</h2>
-      <form onSubmit={handleAdd} className="flex gap-4 mb-12">
-        <input 
-          placeholder="New Skill Name" 
-          value={newName} 
-          onChange={e => setNewName(e.target.value)}
-          className="flex-1 border-2 border-primary/10 px-4 py-3 outline-none focus:border-primary transition-colors font-bold uppercase text-xs"
-        />
-        <button className="bg-primary text-white px-6 py-3 font-bold uppercase tracking-widest text-xs hover:bg-black transition-colors">
-          Add Skill
-        </button>
-      </form>
-      <div className="space-y-2">
-        {data.map((skill: any) => (
-          <div key={skill.id} className="flex justify-between items-center p-4 bg-tertiary border-2 border-primary/5">
-            <span className="font-bold uppercase tracking-widest text-xs">{skill.name}</span>
-            <button onClick={() => handleDelete(skill.id)} className="text-red-500 hover:text-red-700 transition-colors">
-              <Trash2 size={16} />
-            </button>
-          </div>
-        ))}
-      </div>
     </section>
   );
 }
@@ -444,6 +403,52 @@ function ProjectsEditor({ data, onUpdate, showToast }: any) {
             </button>
           </div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+function MessagesViewer({ data, onUpdate, showToast }: any) {
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from('messages').delete().eq('id', id);
+    if (error) showToast(error.message, 'error');
+    else {
+      onUpdate();
+      showToast('Message deleted');
+    }
+  };
+
+  return (
+    <section>
+      <h2 className="text-3xl font-extrabold uppercase tracking-tighter mb-8">Messages</h2>
+      <div className="space-y-6">
+        {data.length === 0 ? (
+          <p className="text-secondary uppercase font-bold tracking-widest text-xs">No messages yet.</p>
+        ) : (
+          data.map((msg: any) => (
+            <div key={msg.id} className="bg-tertiary p-8 border-2 border-primary/5 relative group">
+              <button 
+                onClick={() => handleDelete(msg.id)}
+                className="absolute top-6 right-6 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Trash2 size={18} />
+              </button>
+              <div className="mb-4">
+                <span className="text-[0.65rem] font-bold uppercase tracking-widest text-secondary block mb-1">From</span>
+                <span className="font-bold text-sm uppercase tracking-tight">{msg.email}</span>
+              </div>
+              <div>
+                <span className="text-[0.65rem] font-bold uppercase tracking-widest text-secondary block mb-1">Message</span>
+                <p className="text-sm leading-relaxed text-primary whitespace-pre-wrap">{msg.message}</p>
+              </div>
+              <div className="mt-6 pt-4 border-t border-primary/5 flex justify-between items-center">
+                <span className="text-[0.6rem] text-secondary uppercase font-bold tracking-widest">
+                  {new Date(msg.created_at).toLocaleDateString()} at {new Date(msg.created_at).toLocaleTimeString()}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </section>
   );

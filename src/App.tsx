@@ -19,6 +19,8 @@ interface PortfolioSettings {
   linkedin_url?: string;
   github_url?: string;
   contact_email?: string;
+  contact_headline?: string;
+  contact_description?: string;
 }
 
 interface Skill {
@@ -48,6 +50,21 @@ function Portfolio() {
   const [openExperience, setOpenExperience] = useState<number | null>(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
   
+  // Captcha state
+  const [captcha, setCaptcha] = useState({ a: 0, b: 0, answer: "" });
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const generateCaptcha = () => {
+    const a = Math.floor(Math.random() * 10) + 1;
+    const b = Math.floor(Math.random() * 10) + 1;
+    setCaptcha({ a, b, answer: "" });
+  };
+
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
   // Supabase State
   const [settings, setSettings] = useState<PortfolioSettings | null>(null);
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -86,6 +103,7 @@ function Portfolio() {
     };
 
     fetchData();
+    generateCaptcha();
   }, []);
 
   useEffect(() => {
@@ -100,12 +118,28 @@ function Portfolio() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", { email, message });
-    alert("Thank you! Your message has been sent.");
-    setEmail("");
-    setMessage("");
+
+    // Validate Captcha
+    if (parseInt(captcha.answer) !== captcha.a + captcha.b) {
+      showToast("Incorrect captcha answer. Please try again.", "error");
+      generateCaptcha();
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from('messages').insert([{ email, message }]);
+      if (error) throw error;
+      
+      showToast("Thank you! Your message has been sent.", "success");
+      setEmail("");
+      setMessage("");
+      generateCaptcha();
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+      showToast("Sorry, there was an error sending your message. Please try again.", "error");
+    }
   };
 
   if (loading) {
@@ -125,6 +159,22 @@ function Portfolio() {
 
   return (
     <div className="min-h-screen selection:bg-primary selection:text-white flex flex-col">
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`fixed top-8 left-1/2 -translate-x-1/2 px-6 py-3 border-2 font-bold uppercase tracking-widest text-[0.7rem] z-[100] shadow-xl ${
+              toast.type === 'error' ? 'bg-red-50 border-red-500 text-red-500' : 'bg-green-50 border-green-500 text-green-500'
+            }`}
+          >
+            {toast.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Navigation */}
       <nav className="w-full px-6 sm:px-10 md:px-[60px] pt-8 sm:pt-10 pb-5 flex justify-between items-center">
         <div className="font-extrabold text-[1.2rem] tracking-[-0.5px] uppercase">PORTFOLIO.</div>
@@ -135,10 +185,10 @@ function Portfolio() {
         </div>
       </nav>
 
-      <main className="flex-1 px-6 sm:px-10 md:px-[60px] flex flex-col justify-center">
+      <main className="flex-1 flex flex-col justify-center">
         {/* Hero Section */}
-        <section className="mb-20 sm:mb-24 md:mb-[120px]">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+        <section className="px-6 sm:px-10 md:px-[60px]">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-end">
             {/* Photo Column */}
             <motion.div 
               initial={{ opacity: 0, scale: 0.98 }}
@@ -149,7 +199,7 @@ function Portfolio() {
               <img 
                 src={settings?.photo_url || "https://picsum.photos/seed/professional/800/1000"} 
                 alt="Professional Portrait" 
-                className="w-full max-w-[480px] aspect-[4/5] object-cover rounded-[4px]"
+                className="w-full max-w-[480px] aspect-[4/5] object-cover rounded-t-[4px]"
                 referrerPolicy="no-referrer"
               />
             </motion.div>
@@ -159,7 +209,7 @@ function Portfolio() {
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-              className="order-2 lg:order-1"
+              className="order-2 lg:order-1 pb-12 lg:pb-20"
             >
               <h1 className="text-display mb-4 whitespace-pre-line">
                 {settings?.hero_headline || "SYSTEMS OPTIMIZED.\nDATA SCALED."}
@@ -171,7 +221,7 @@ function Portfolio() {
                 href="#projects"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="inline-block w-full sm:w-auto text-center bg-primary text-white px-8 sm:px-[40px] py-4 sm:py-[18px] text-[0.9rem] font-bold uppercase tracking-[1px] hover:bg-black transition-colors"
+                className="inline-block w-full sm:w-auto text-center bg-primary text-white px-8 sm:px-[40px] py-4 sm:py-[18px] text-[0.9rem] font-bold uppercase tracking-[1px] hover:bg-black transition-colors mb-12 lg:mb-20"
               >
                 {settings?.cta_text || "View Case Studies"}
               </motion.a>
@@ -179,9 +229,71 @@ function Portfolio() {
           </div>
         </section>
 
+        {/* Experience Section */}
+        <section id="experience" className="bg-tertiary py-20 sm:py-24 md:py-[120px] mb-20 sm:mb-24 md:mb-[120px]">
+          <div className="px-6 sm:px-10 md:px-[60px]">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 sm:mb-12 gap-6 sm:gap-8">
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tighter uppercase">
+                Professional<br />Experience
+              </h2>
+              <p className="text-secondary font-bold text-[0.7rem] sm:text-[0.75rem] uppercase tracking-widest">
+                Career Trajectory & Achievements
+              </p>
+            </div>
+
+            <div className="border-t-2 border-primary">
+              {experiences.map((exp, index) => {
+                const isOpen = openExperience === index;
+                return (
+                  <div key={`${exp.role}-${exp.company}`} className="border-b-2 border-primary">
+                    <button
+                      onClick={() => setOpenExperience(isOpen ? null : index)}
+                      className={`w-full flex justify-between items-start sm:items-center py-6 sm:py-8 px-2 sm:px-4 transition-colors duration-300 text-left ${
+                        isOpen ? "bg-white" : "hover:bg-white/40"
+                      }`}
+                    >
+                      <div className="flex flex-col md:flex-row md:items-center gap-1 sm:gap-2 md:gap-8 flex-1 pr-4">
+                        <span className="text-lg sm:text-xl font-extrabold uppercase tracking-tight leading-tight">{exp.role}</span>
+                        <span className="text-secondary font-bold text-xs sm:text-sm uppercase tracking-widest">{exp.company}</span>
+                      </div>
+                      <div className="flex items-center gap-4 sm:gap-8 shrink-0">
+                        <span className="hidden md:block text-sm font-bold uppercase tracking-widest">{exp.period}</span>
+                        <span className="text-xl sm:text-2xl font-bold w-6 text-center">
+                          {isOpen ? "—" : "+"}
+                        </span>
+                      </div>
+                    </button>
+
+                    <motion.div
+                      initial={false}
+                      animate={{ height: isOpen ? "auto" : 0, opacity: isOpen ? 1 : 0 }}
+                      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                      className="overflow-hidden bg-white/30"
+                    >
+                      <div className="px-4 sm:px-8 pb-10 sm:pb-12 pt-2 sm:pt-4">
+                        <div className="md:hidden mb-4 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-secondary">
+                          {exp.period}
+                        </div>
+                        <ul className="space-y-3 sm:space-y-4 max-w-3xl">
+                          {exp.responsibilities.map((point, i) => (
+                            <li key={i} className="flex gap-3 sm:gap-4 text-secondary text-sm sm:text-base leading-relaxed">
+                              <span className="text-primary font-bold mt-1 sm:mt-1.5">•</span>
+                              <span>{point}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </motion.div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
         {/* Tech Stack Section */}
         {skills.length > 0 && (
-          <section className="mb-20 sm:mb-24 md:mb-[120px]">
+          <section className="px-6 sm:px-10 md:px-[60px] mb-20 sm:mb-24 md:mb-[120px]">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
               <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tighter uppercase">
                 Tech Stack
@@ -203,68 +315,8 @@ function Portfolio() {
           </section>
         )}
 
-        {/* Experience Section */}
-        <section id="experience" className="mb-20 sm:mb-24 md:mb-[120px]">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 sm:mb-12 gap-6 sm:gap-8">
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tighter uppercase">
-              Professional<br />Experience
-            </h2>
-            <p className="text-secondary font-bold text-[0.7rem] sm:text-[0.75rem] uppercase tracking-widest">
-              Career Trajectory & Achievements
-            </p>
-          </div>
-
-          <div className="border-t-2 border-primary">
-            {experiences.map((exp, index) => {
-              const isOpen = openExperience === index;
-              return (
-                <div key={`${exp.role}-${exp.company}`} className="border-b-2 border-primary">
-                  <button
-                    onClick={() => setOpenExperience(isOpen ? null : index)}
-                    className={`w-full flex justify-between items-start sm:items-center py-6 sm:py-8 px-2 sm:px-4 transition-colors duration-300 text-left ${
-                      isOpen ? "bg-tertiary" : "bg-white hover:bg-tertiary/50"
-                    }`}
-                  >
-                    <div className="flex flex-col md:flex-row md:items-center gap-1 sm:gap-2 md:gap-8 flex-1 pr-4">
-                      <span className="text-lg sm:text-xl font-extrabold uppercase tracking-tight leading-tight">{exp.role}</span>
-                      <span className="text-secondary font-bold text-xs sm:text-sm uppercase tracking-widest">{exp.company}</span>
-                    </div>
-                    <div className="flex items-center gap-4 sm:gap-8 shrink-0">
-                      <span className="hidden md:block text-sm font-bold uppercase tracking-widest">{exp.period}</span>
-                      <span className="text-xl sm:text-2xl font-bold w-6 text-center">
-                        {isOpen ? "—" : "+"}
-                      </span>
-                    </div>
-                  </button>
-
-                  <motion.div
-                    initial={false}
-                    animate={{ height: isOpen ? "auto" : 0, opacity: isOpen ? 1 : 0 }}
-                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                    className="overflow-hidden bg-tertiary"
-                  >
-                    <div className="px-4 sm:px-8 pb-10 sm:pb-12 pt-2 sm:pt-4">
-                      <div className="md:hidden mb-4 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-secondary">
-                        {exp.period}
-                      </div>
-                      <ul className="space-y-3 sm:space-y-4 max-w-3xl">
-                        {exp.responsibilities.map((point, i) => (
-                          <li key={i} className="flex gap-3 sm:gap-4 text-secondary text-sm sm:text-base leading-relaxed">
-                            <span className="text-primary font-bold mt-1 sm:mt-1.5">•</span>
-                            <span>{point}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </motion.div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
         {/* Projects Section */}
-        <section id="projects" className="mb-20 sm:mb-24 md:mb-[120px]">
+        <section id="projects" className="px-6 sm:px-10 md:px-[60px] mb-20 sm:mb-24 md:mb-[120px]">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {projects.map((project, index) => (
               <motion.div
@@ -304,19 +356,20 @@ function Portfolio() {
         </section>
 
         {/* Contact Section */}
-        <section id="contact" className="py-16 sm:py-20 border-t border-[#EEEEEE]">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 sm:gap-20">
-            <div>
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tighter uppercase mb-6">
-                Start a Project
-              </h2>
-              <p className="text-base sm:text-lg text-secondary mb-8 sm:mb-10 max-w-md">
-                Interested in optimizing your systems or scaling your data infrastructure? Reach out for a consultation.
-              </p>
-            </div>
+        <section id="contact" className="bg-tertiary py-20 sm:py-24 md:py-[120px]">
+          <div className="px-6 sm:px-10 md:px-[60px]">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 sm:gap-20">
+              <div>
+                <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tighter uppercase mb-6">
+                  {settings?.contact_headline || "Start a Project"}
+                </h2>
+                <p className="text-base sm:text-lg text-secondary mb-8 sm:mb-10 max-w-md">
+                  {settings?.contact_description || "Interested in optimizing your systems or scaling your data infrastructure? Reach out for a consultation."}
+                </p>
+              </div>
 
-            <div className="bg-tertiary p-6 sm:p-8 border border-primary/5">
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="bg-white p-6 sm:p-10 border-2 border-primary/5 shadow-sm">
+                <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-1">
                   <label className="text-[0.7rem] sm:text-[0.75rem] font-bold uppercase tracking-widest text-secondary">Email Address</label>
                   <input
@@ -339,6 +392,22 @@ function Portfolio() {
                     placeholder="Tell me about your project..."
                   />
                 </div>
+
+                {/* Simple Captcha */}
+                <div className="space-y-2">
+                  <label className="text-[0.7rem] sm:text-[0.75rem] font-bold uppercase tracking-widest text-secondary">
+                    Security Check: What is {captcha.a} + {captcha.b}?
+                  </label>
+                  <input
+                    required
+                    type="number"
+                    value={captcha.answer}
+                    onChange={(e) => setCaptcha({ ...captcha, answer: e.target.value })}
+                    className="w-full border-b border-secondary/20 focus:border-primary bg-transparent outline-none py-2 text-sm sm:text-base transition-colors"
+                    placeholder="Enter result"
+                  />
+                </div>
+
                 <button
                   type="submit"
                   className="w-full bg-primary text-white py-4 text-[0.85rem] sm:text-[0.9rem] font-bold uppercase tracking-[1px] hover:bg-black transition-colors"
@@ -348,7 +417,8 @@ function Portfolio() {
               </form>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
       </main>
 
       {/* Footer */}
