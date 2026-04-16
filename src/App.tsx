@@ -6,69 +6,84 @@
 import { motion, AnimatePresence } from "motion/react";
 import { Github, Linkedin, Mail, ArrowRight, ExternalLink, ChevronUp } from "lucide-react";
 import { useState, FormEvent, useEffect } from "react";
+import { supabase } from "./supabaseClient";
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import AdminDashboard from "./AdminDashboard";
 
-const PROJECTS = [
-  {
-    title: "Hardware Maintenance Scaling",
-    description: "Optimized infrastructure deployment for a regional data center, reducing downtime by 40% through predictive maintenance systems.",
-    tags: ["Systems", "Optimization", "Hardware"],
-    year: "2024",
-    url: "https://example.com/hardware-scaling"
-  },
-  {
-    title: "Software Deployment Pipeline",
-    description: "Architected a streamlined CI/CD workflow for enterprise-level data management software, increasing deployment frequency by 3x.",
-    tags: ["DevOps", "Data Management", "Scaling"],
-    year: "2023",
-    url: "https://example.com/software-pipeline"
-  },
-  {
-    title: "Data Reporting Engine",
-    description: "Developed a high-performance reporting tool that processes millions of records in real-time for executive decision-making.",
-    tags: ["Data", "Analytics", "Performance"],
-    year: "2023",
-    url: "https://example.com/data-reporting"
-  }
-];
+// Types for Supabase data
+interface PortfolioSettings {
+  hero_headline: string;
+  hero_subheadline: string;
+  photo_url: string;
+  cta_text: string;
+}
 
-const EXPERIENCE = [
-  {
-    role: "Senior Systems Analyst",
-    company: "TechCore Solutions",
-    period: "2021 — PRESENT",
-    points: [
-      "Orchestrated the migration of legacy data systems to a high-performance cloud infrastructure, improving query speeds by 65%.",
-      "Managed a fleet of 200+ laboratory and workstation PCs, implementing automated maintenance protocols.",
-      "Coordinated cross-functional teams to deliver technical documentation for enterprise-scale software deployments."
-    ]
-  },
-  {
-    role: "IT Infrastructure Coordinator",
-    company: "Global Academic Research",
-    period: "2018 — 2021",
-    points: [
-      "Designed and maintained academic data systems for large-scale research projects, ensuring 99.9% data integrity.",
-      "Scaled hardware maintenance operations across multiple regional campuses, reducing technical debt by 30%.",
-      "Implemented security protocols for sensitive research data, meeting strict international compliance standards."
-    ]
-  },
-  {
-    role: "Junior Systems Administrator",
-    company: "DataStream Inc.",
-    period: "2016 — 2018",
-    points: [
-      "Assisted in the deployment of real-time data ingestion engines for financial telemetry.",
-      "Provided tier-2 technical support for hardware and software issues across the organization.",
-      "Maintained system logs and generated weekly performance reports for the infrastructure team."
-    ]
-  }
-];
+interface Skill {
+  name: string;
+  sort_order: number;
+}
 
-export default function App() {
+interface Experience {
+  role: string;
+  company: string;
+  period: string;
+  responsibilities: string[];
+  sort_order: number;
+}
+
+interface Project {
+  title: string;
+  description: string;
+  year: string;
+  url: string;
+  sort_order: number;
+}
+
+function Portfolio() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [openExperience, setOpenExperience] = useState<number | null>(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  
+  // Supabase State
+  const [settings, setSettings] = useState<PortfolioSettings | null>(null);
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch all data in parallel
+        const [
+          { data: settingsData },
+          { data: skillsData },
+          { data: experiencesData },
+          { data: projectsData }
+        ] = await Promise.all([
+          supabase.from('portfolio_settings').select('*').single(),
+          supabase.from('skills').select('*').order('sort_order', { ascending: true }),
+          supabase.from('experiences').select('*').order('sort_order', { ascending: true }),
+          supabase.from('projects').select('*').order('sort_order', { ascending: true })
+        ]);
+
+        if (settingsData) setSettings(settingsData);
+        if (skillsData) setSkills(skillsData);
+        if (experiencesData) setExperiences(experiencesData);
+        if (projectsData) setProjects(projectsData);
+        
+      } catch (error) {
+        console.error('Error fetching portfolio data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -84,12 +99,26 @@ export default function App() {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    // In a real app, this would send the data to a backend
     console.log("Form submitted:", { email, message });
     alert("Thank you! Your message has been sent.");
     setEmail("");
     setMessage("");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          className="text-primary font-bold uppercase tracking-[4px] text-sm"
+        >
+          Loading Portfolio...
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen selection:bg-primary selection:text-white flex flex-col">
@@ -106,29 +135,70 @@ export default function App() {
       <main className="flex-1 px-6 sm:px-10 md:px-[60px] flex flex-col justify-center">
         {/* Hero Section */}
         <section className="mb-20 sm:mb-24 md:mb-[120px]">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="max-w-[800px]"
-          >
-            <h1 className="text-display mb-4">
-              SYSTEMS OPTIMIZED.<br />
-              DATA SCALED.
-            </h1>
-            <p className="text-lg sm:text-xl md:text-[1.25rem] text-secondary max-w-[500px] mb-8 font-normal leading-[1.5]">
-              Architecting robust infrastructure and high-performance data pipelines for enterprise-scale deployments.
-            </p>
-            <motion.a
-              href="#projects"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="inline-block w-full sm:w-auto text-center bg-primary text-white px-8 sm:px-[40px] py-4 sm:py-[18px] text-[0.9rem] font-bold uppercase tracking-[1px] hover:bg-black transition-colors"
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+            {/* Photo Column */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="order-1 lg:order-2 flex justify-center lg:justify-end"
             >
-              View Case Studies
-            </motion.a>
-          </motion.div>
+              <img 
+                src={settings?.photo_url || "https://picsum.photos/seed/professional/800/1000"} 
+                alt="Professional Portrait" 
+                className="w-full max-w-[480px] aspect-[4/5] object-cover rounded-[4px]"
+                referrerPolicy="no-referrer"
+              />
+            </motion.div>
+
+            {/* Text Column */}
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="order-2 lg:order-1"
+            >
+              <h1 className="text-display mb-4 whitespace-pre-line">
+                {settings?.hero_headline || "SYSTEMS OPTIMIZED.\nDATA SCALED."}
+              </h1>
+              <p className="text-lg sm:text-xl md:text-[1.25rem] text-secondary max-w-[500px] mb-8 font-normal leading-[1.5]">
+                {settings?.hero_subheadline || "Architecting robust infrastructure and high-performance data pipelines for enterprise-scale deployments."}
+              </p>
+              <motion.a
+                href="#projects"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="inline-block w-full sm:w-auto text-center bg-primary text-white px-8 sm:px-[40px] py-4 sm:py-[18px] text-[0.9rem] font-bold uppercase tracking-[1px] hover:bg-black transition-colors"
+              >
+                {settings?.cta_text || "View Case Studies"}
+              </motion.a>
+            </motion.div>
+          </div>
         </section>
+
+        {/* Tech Stack Section */}
+        {skills.length > 0 && (
+          <section className="mb-20 sm:mb-24 md:mb-[120px]">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tighter uppercase">
+                Tech Stack
+              </h2>
+              <p className="text-secondary font-bold text-[0.7rem] uppercase tracking-widest">
+                Core Competencies & Tools
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-4">
+              {skills.map((skill) => (
+                <div 
+                  key={skill.name}
+                  className="bg-tertiary px-6 py-3 border-l-4 border-primary font-bold uppercase tracking-widest text-[0.75rem]"
+                >
+                  {skill.name}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Experience Section */}
         <section id="experience" className="mb-20 sm:mb-24 md:mb-[120px]">
@@ -142,10 +212,10 @@ export default function App() {
           </div>
 
           <div className="border-t-2 border-primary">
-            {EXPERIENCE.map((exp, index) => {
+            {experiences.map((exp, index) => {
               const isOpen = openExperience === index;
               return (
-                <div key={exp.role} className="border-b-2 border-primary">
+                <div key={`${exp.role}-${exp.company}`} className="border-b-2 border-primary">
                   <button
                     onClick={() => setOpenExperience(isOpen ? null : index)}
                     className={`w-full flex justify-between items-start sm:items-center py-6 sm:py-8 px-2 sm:px-4 transition-colors duration-300 text-left ${
@@ -175,7 +245,7 @@ export default function App() {
                         {exp.period}
                       </div>
                       <ul className="space-y-3 sm:space-y-4 max-w-3xl">
-                        {exp.points.map((point, i) => (
+                        {exp.responsibilities.map((point, i) => (
                           <li key={i} className="flex gap-3 sm:gap-4 text-secondary text-sm sm:text-base leading-relaxed">
                             <span className="text-primary font-bold mt-1 sm:mt-1.5">•</span>
                             <span>{point}</span>
@@ -193,7 +263,7 @@ export default function App() {
         {/* Projects Section */}
         <section id="projects" className="mb-20 sm:mb-24 md:mb-[120px]">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {PROJECTS.map((project, index) => (
+            {projects.map((project, index) => (
               <motion.div
                 key={project.title}
                 initial={{ opacity: 0, y: 20 }}
@@ -309,3 +379,15 @@ export default function App() {
     </div>
   );
 }
+
+export default function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Portfolio />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+      </Routes>
+    </Router>
+  );
+}
+
