@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { motion } from 'motion/react';
-import { Plus, Trash2, Save, LogOut, Settings, Code, Briefcase, Folder, ChevronRight, Upload, Loader2, Mail } from 'lucide-react';
+import { Plus, Trash2, Save, LogOut, Settings, Code, Briefcase, Folder, ChevronRight, Upload, Loader2, Mail, ArrowUp, ArrowDown, Edit3, X } from 'lucide-react';
 
 type Section = 'settings' | 'experience' | 'projects' | 'messages';
 
@@ -329,6 +329,7 @@ function SettingsEditor({ data, onSave, showToast }: any) {
 
 function ExperienceEditor({ data, onUpdate, showToast }: any) {
   const [form, setForm] = useState({ role: '', company: '', period: '', responsibilities: [''] });
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const handleAddPoint = () => setForm({...form, responsibilities: [...form.responsibilities, '']});
   const handleRemovePoint = (idx: number) => setForm({...form, responsibilities: form.responsibilities.filter((_, i) => i !== idx)});
@@ -338,14 +339,39 @@ function ExperienceEditor({ data, onUpdate, showToast }: any) {
     setForm({...form, responsibilities: newPoints});
   };
 
-  const handleAdd = async (e: React.FormEvent) => {
+  const resetForm = () => {
+    setForm({ role: '', company: '', period: '', responsibilities: [''] });
+    setEditingId(null);
+  };
+
+  const handleEdit = (exp: any) => {
+    setForm({
+      role: exp.role || '',
+      company: exp.company || '',
+      period: exp.period || '',
+      responsibilities: exp.responsibilities || ['']
+    });
+    setEditingId(exp.id);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from('experiences').insert([{ ...form, sort_order: data.length }]);
-    if (error) showToast(error.message, 'error');
-    else {
-      setForm({ role: '', company: '', period: '', responsibilities: [''] });
-      onUpdate();
-      showToast('Experience added');
+    if (editingId) {
+      const { error } = await supabase.from('experiences').update(form).eq('id', editingId);
+      if (error) showToast(error.message, 'error');
+      else {
+        resetForm();
+        onUpdate();
+        showToast('Experience updated');
+      }
+    } else {
+      const { error } = await supabase.from('experiences').insert([{ ...form, sort_order: data.length }]);
+      if (error) showToast(error.message, 'error');
+      else {
+        resetForm();
+        onUpdate();
+        showToast('Experience added');
+      }
     }
   };
 
@@ -355,14 +381,38 @@ function ExperienceEditor({ data, onUpdate, showToast }: any) {
     else onUpdate();
   };
 
+  const handleMove = async (index: number, direction: 'up' | 'down') => {
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= data.length) return;
+
+    const currentItem = data[index];
+    const siblingItem = data[newIndex];
+
+    const { error } = await supabase.from('experiences').upsert([
+      { id: currentItem.id, sort_order: siblingItem.sort_order },
+      { id: siblingItem.id, sort_order: currentItem.sort_order }
+    ]);
+
+    if (error) showToast(error.message, 'error');
+    else onUpdate();
+  };
+
   return (
     <section>
       <h2 className="text-3xl font-extrabold uppercase tracking-tighter mb-8">Experience</h2>
-      <form onSubmit={handleAdd} className="bg-tertiary p-8 border-2 border-primary/5 space-y-6 mb-12">
+      <form onSubmit={handleSubmit} className="bg-tertiary p-8 border-2 border-primary/5 space-y-6 mb-12 relative">
+        {editingId && (
+          <div className="absolute top-4 right-4 flex items-center gap-2">
+            <span className="text-[0.6rem] font-bold uppercase tracking-widest text-primary bg-primary/10 px-2 py-1">Editing Mode</span>
+            <button type="button" onClick={resetForm} className="text-secondary hover:text-primary transition-colors">
+              <X size={16} />
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-6">
-          <Input label="Role" value={form.role} onChange={v => setForm({...form, role: v})} />
-          <Input label="Company" value={form.company} onChange={v => setForm({...form, company: v})} />
-          <Input label="Period" value={form.period} onChange={v => setForm({...form, period: v})} />
+          <Input label="Role" value={form.role} onChange={(v: string) => setForm({...form, role: v})} />
+          <Input label="Company" value={form.company} onChange={(v: string) => setForm({...form, company: v})} />
+          <Input label="Period" value={form.period} onChange={(v: string) => setForm({...form, period: v})} />
         </div>
         <div className="space-y-4">
           <label className="text-[0.7rem] font-bold uppercase tracking-widest text-secondary">Responsibilities</label>
@@ -381,19 +431,42 @@ function ExperienceEditor({ data, onUpdate, showToast }: any) {
           </button>
         </div>
         <button className="bg-primary text-white px-8 py-3 font-bold uppercase tracking-widest text-xs hover:bg-black transition-colors">
-          Add Experience
+          {editingId ? 'Update Experience' : 'Add Experience'}
         </button>
       </form>
       <div className="space-y-4">
-        {data.map((exp: any) => (
-          <div key={exp.id} className="p-6 bg-tertiary border-2 border-primary/5 flex justify-between items-start">
-            <div>
-              <div className="font-bold uppercase tracking-widest text-sm">{exp.role}</div>
-              <div className="text-xs text-secondary uppercase tracking-widest">{exp.company} | {exp.period}</div>
+        {data.map((exp: any, idx: number) => (
+          <div key={exp.id} className="p-6 bg-tertiary border-2 border-primary/5 flex justify-between items-center group">
+            <div className="flex items-center gap-4">
+              <div className="flex flex-col gap-1">
+                <button 
+                  onClick={() => handleMove(idx, 'up')} 
+                  disabled={idx === 0}
+                  className="text-secondary hover:text-primary disabled:opacity-20"
+                >
+                  <ArrowUp size={16} />
+                </button>
+                <button 
+                  onClick={() => handleMove(idx, 'down')} 
+                  disabled={idx === data.length - 1}
+                  className="text-secondary hover:text-primary disabled:opacity-20"
+                >
+                  <ArrowDown size={16} />
+                </button>
+              </div>
+              <div>
+                <div className="font-bold uppercase tracking-widest text-sm">{exp.role}</div>
+                <div className="text-xs text-secondary uppercase tracking-widest">{exp.company} | {exp.period}</div>
+              </div>
             </div>
-            <button onClick={() => handleDelete(exp.id)} className="text-red-500 hover:text-red-700 transition-colors">
-              <Trash2 size={18} />
-            </button>
+            <div className="flex items-center gap-3">
+              <button onClick={() => handleEdit(exp)} className="text-secondary hover:text-primary transition-colors">
+                <Edit3 size={18} />
+              </button>
+              <button onClick={() => handleDelete(exp.id)} className="text-red-500 hover:text-red-700 transition-colors">
+                <Trash2 size={18} />
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -403,15 +476,41 @@ function ExperienceEditor({ data, onUpdate, showToast }: any) {
 
 function ProjectsEditor({ data, onUpdate, showToast }: any) {
   const [form, setForm] = useState({ title: '', description: '', year: '', project_url: '' });
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  const handleAdd = async (e: React.FormEvent) => {
+  const resetForm = () => {
+    setForm({ title: '', description: '', year: '', project_url: '' });
+    setEditingId(null);
+  };
+
+  const handleEdit = (proj: any) => {
+    setForm({
+      title: proj.title || '',
+      description: proj.description || '',
+      year: proj.year || '',
+      project_url: proj.project_url || ''
+    });
+    setEditingId(proj.id);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from('projects').insert([{ ...form, sort_order: data.length }]);
-    if (error) showToast(error.message, 'error');
-    else {
-      setForm({ title: '', description: '', year: '', project_url: '' });
-      onUpdate();
-      showToast('Project added');
+    if (editingId) {
+      const { error } = await supabase.from('projects').update(form).eq('id', editingId);
+      if (error) showToast(error.message, 'error');
+      else {
+        resetForm();
+        onUpdate();
+        showToast('Project updated');
+      }
+    } else {
+      const { error } = await supabase.from('projects').insert([{ ...form, sort_order: data.length }]);
+      if (error) showToast(error.message, 'error');
+      else {
+        resetForm();
+        onUpdate();
+        showToast('Project added');
+      }
     }
   };
 
@@ -421,30 +520,77 @@ function ProjectsEditor({ data, onUpdate, showToast }: any) {
     else onUpdate();
   };
 
+  const handleMove = async (index: number, direction: 'up' | 'down') => {
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= data.length) return;
+
+    const currentItem = data[index];
+    const siblingItem = data[newIndex];
+
+    const { error } = await supabase.from('projects').upsert([
+      { id: currentItem.id, sort_order: siblingItem.sort_order },
+      { id: siblingItem.id, sort_order: currentItem.sort_order }
+    ]);
+
+    if (error) showToast(error.message, 'error');
+    else onUpdate();
+  };
+
   return (
     <section>
       <h2 className="text-3xl font-extrabold uppercase tracking-tighter mb-8">Projects</h2>
-      <form onSubmit={handleAdd} className="bg-tertiary p-8 border-2 border-primary/5 space-y-6 mb-12">
+      <form onSubmit={handleSubmit} className="bg-tertiary p-8 border-2 border-primary/5 space-y-6 mb-12 relative">
+        {editingId && (
+          <div className="absolute top-4 right-4 flex items-center gap-2">
+            <span className="text-[0.6rem] font-bold uppercase tracking-widest text-primary bg-primary/10 px-2 py-1">Editing Mode</span>
+            <button type="button" onClick={resetForm} className="text-secondary hover:text-primary transition-colors">
+              <X size={16} />
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-6">
-          <Input label="Title" value={form.title} onChange={v => setForm({...form, title: v})} />
-          <Input label="Year" value={form.year} onChange={v => setForm({...form, year: v})} />
-          <Input label="URL" value={form.project_url} onChange={v => setForm({...form, project_url: v})} />
+          <Input label="Title" value={form.title} onChange={(v: string) => setForm({...form, title: v})} />
+          <Input label="Year" value={form.year} onChange={(v: string) => setForm({...form, year: v})} />
+          <Input label="URL" value={form.project_url} onChange={(v: string) => setForm({...form, project_url: v})} />
         </div>
-        <Input label="Description" value={form.description} onChange={v => setForm({...form, description: v})} textarea />
+        <Input label="Description" value={form.description} onChange={(v: string) => setForm({...form, description: v})} textarea />
         <button className="bg-primary text-white px-8 py-3 font-bold uppercase tracking-widest text-xs hover:bg-black transition-colors">
-          Add Project
+          {editingId ? 'Update Project' : 'Add Project'}
         </button>
       </form>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {data.map((proj: any) => (
-          <div key={proj.id} className="p-6 bg-tertiary border-2 border-primary/5 flex justify-between items-start">
-            <div>
-              <div className="font-bold uppercase tracking-widest text-sm">{proj.title}</div>
-              <div className="text-[10px] text-secondary uppercase tracking-widest">{proj.year}</div>
+        {data.map((proj: any, idx: number) => (
+          <div key={proj.id} className="p-6 bg-tertiary border-2 border-primary/5 flex justify-between items-center group">
+            <div className="flex items-center gap-4">
+              <div className="flex flex-col gap-1">
+                <button 
+                  onClick={() => handleMove(idx, 'up')} 
+                  disabled={idx === 0}
+                  className="text-secondary hover:text-primary disabled:opacity-20"
+                >
+                  <ArrowUp size={16} />
+                </button>
+                <button 
+                  onClick={() => handleMove(idx, 'down')} 
+                  disabled={idx === data.length - 1}
+                  className="text-secondary hover:text-primary disabled:opacity-20"
+                >
+                  <ArrowDown size={16} />
+                </button>
+              </div>
+              <div>
+                <div className="font-bold uppercase tracking-widest text-sm">{proj.title}</div>
+                <div className="text-[10px] text-secondary uppercase tracking-widest">{proj.year}</div>
+              </div>
             </div>
-            <button onClick={() => handleDelete(proj.id)} className="text-red-500 hover:text-red-700 transition-colors">
-              <Trash2 size={18} />
-            </button>
+            <div className="flex items-center gap-3">
+              <button onClick={() => handleEdit(proj)} className="text-secondary hover:text-primary transition-colors">
+                <Edit3 size={18} />
+              </button>
+              <button onClick={() => handleDelete(proj.id)} className="text-red-500 hover:text-red-700 transition-colors">
+                <Trash2 size={18} />
+              </button>
+            </div>
           </div>
         ))}
       </div>
