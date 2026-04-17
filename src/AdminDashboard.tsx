@@ -193,6 +193,7 @@ function SidebarLink({ active, onClick, icon, label }: any) {
 function SettingsEditor({ data, onSave, showToast }: any) {
   const [form, setForm] = useState(data || {});
   const [uploading, setUploading] = useState(false);
+  const [uploadingIcon, setUploadingIcon] = useState(false);
 
   useEffect(() => { if (data) setForm(data); }, [data]);
 
@@ -227,6 +228,35 @@ function SettingsEditor({ data, onSave, showToast }: any) {
     }
   };
 
+  const handleIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploadingIcon(true);
+      if (!e.target.files || e.target.files.length === 0) return;
+
+      const file = e.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `branding/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('portfolio')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('portfolio')
+        .getPublicUrl(filePath);
+
+      setForm({ ...form, browser_icons: publicUrl });
+      showToast('Browser icon uploaded successfully');
+    } catch (error: any) {
+      showToast(error.message, 'error');
+    } finally {
+      setUploadingIcon(false);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload = data?.id ? { ...form, id: data.id } : form;
@@ -243,6 +273,20 @@ function SettingsEditor({ data, onSave, showToast }: any) {
       <h2 className="text-3xl font-extrabold uppercase tracking-tighter mb-8">General Settings</h2>
       <form onSubmit={handleSave} className="space-y-8 bg-tertiary p-8 border-2 border-primary/5">
         <div className="grid grid-cols-1 gap-6">
+          <div className="pt-6 border-b border-primary/10 pb-6 space-y-6">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-primary">Site Branding</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Input label="Browser Tab Title" value={form.site_title} onChange={v => setForm({...form, site_title: v})} />
+              <div className="space-y-4">
+                <Input label="Favicon URL" value={form.browser_icons} onChange={v => setForm({...form, browser_icons: v})} />
+                <label className="cursor-pointer bg-white border-2 border-primary px-6 py-3 font-bold uppercase tracking-widest text-[0.7rem] hover:bg-tertiary transition-colors flex items-center gap-2 w-fit">
+                  {uploadingIcon ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                  {uploadingIcon ? 'Uploading...' : 'Upload Icon'}
+                  <input type="file" className="hidden" accept="image/*" onChange={handleIconUpload} disabled={uploadingIcon} />
+                </label>
+              </div>
+            </div>
+          </div>
           <Input label="Headline" value={form.hero_headline} onChange={v => setForm({...form, hero_headline: v})} textarea />
           <Input label="Subheadline" value={form.hero_subheadline} onChange={v => setForm({...form, hero_subheadline: v})} textarea />
           <Input label="CTA Text" value={form.cta_text} onChange={v => setForm({...form, cta_text: v})} />

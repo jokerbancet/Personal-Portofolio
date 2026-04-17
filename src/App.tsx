@@ -21,6 +21,8 @@ interface PortfolioSettings {
   contact_email?: string;
   contact_headline?: string;
   contact_description?: string;
+  site_title?: string;
+  browser_icons?: string;
 }
 
 interface Skill {
@@ -90,7 +92,23 @@ function Portfolio() {
           supabase.from('projects').select('*').order('sort_order', { ascending: true })
         ]);
 
-        if (settingsData) setSettings(settingsData);
+        if (settingsData) {
+          setSettings(settingsData);
+          // Dynamic Browser Title
+          if (settingsData.site_title) {
+            document.title = settingsData.site_title;
+          }
+          // Dynamic Favicon
+          if (settingsData.browser_icons) {
+            let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
+            if (!link) {
+              link = document.createElement('link');
+              link.rel = 'icon';
+              document.getElementsByTagName('head')[0].appendChild(link);
+            }
+            link.href = settingsData.browser_icons;
+          }
+        }
         if (skillsData) setSkills(skillsData);
         if (experiencesData) setExperiences(experiencesData);
         if (projectsData) setProjects(projectsData);
