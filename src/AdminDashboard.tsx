@@ -388,12 +388,11 @@ function ExperienceEditor({ data, onUpdate, showToast }: any) {
     const currentItem = data[index];
     const siblingItem = data[newIndex];
 
-    const { error } = await supabase.from('experiences').upsert([
-      { id: currentItem.id, sort_order: siblingItem.sort_order },
-      { id: siblingItem.id, sort_order: currentItem.sort_order }
-    ]);
+    // Using individual updates instead of upsert to avoid NOT NULL constraint violations on missing fields
+    const { error: err1 } = await supabase.from('experiences').update({ sort_order: siblingItem.sort_order }).eq('id', currentItem.id);
+    const { error: err2 } = await supabase.from('experiences').update({ sort_order: currentItem.sort_order }).eq('id', siblingItem.id);
 
-    if (error) showToast(error.message, 'error');
+    if (err1 || err2) showToast(err1?.message || err2?.message, 'error');
     else onUpdate();
   };
 
@@ -495,6 +494,11 @@ function ProjectsEditor({ data, onUpdate, showToast }: any) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.title?.trim()) {
+      showToast('Title is required', 'error');
+      return;
+    }
+    
     if (editingId) {
       const { error } = await supabase.from('projects').update(form).eq('id', editingId);
       if (error) showToast(error.message, 'error');
@@ -527,12 +531,11 @@ function ProjectsEditor({ data, onUpdate, showToast }: any) {
     const currentItem = data[index];
     const siblingItem = data[newIndex];
 
-    const { error } = await supabase.from('projects').upsert([
-      { id: currentItem.id, sort_order: siblingItem.sort_order },
-      { id: siblingItem.id, sort_order: currentItem.sort_order }
-    ]);
+    // Using individual updates instead of upsert to avoid NOT NULL constraint violations on missing fields
+    const { error: err1 } = await supabase.from('projects').update({ sort_order: siblingItem.sort_order }).eq('id', currentItem.id);
+    const { error: err2 } = await supabase.from('projects').update({ sort_order: currentItem.sort_order }).eq('id', siblingItem.id);
 
-    if (error) showToast(error.message, 'error');
+    if (err1 || err2) showToast(err1?.message || err2?.message, 'error');
     else onUpdate();
   };
 
