@@ -11,6 +11,8 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import AdminDashboard from "./AdminDashboard";
 
 // Types for Supabase data
+import { ThemeToggle, useTheme } from "./ThemeToggle";
+
 interface PortfolioSettings {
   hero_headline: string;
   hero_subheadline: string;
@@ -55,6 +57,8 @@ function Portfolio() {
   // Captcha state
   const [captcha, setCaptcha] = useState({ a: 0, b: 0, answer: "" });
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  useTheme(); // Initialize theme on mount
 
   const generateCaptcha = () => {
     const a = Math.floor(Math.random() * 10) + 1;
@@ -196,10 +200,13 @@ function Portfolio() {
       {/* Navigation */}
       <nav className="w-full px-6 sm:px-10 md:px-[60px] pt-8 sm:pt-10 pb-5 flex justify-between items-center">
         <div className="font-extrabold text-[1.2rem] tracking-[-0.5px] uppercase">PORTFOLIO.</div>
-        <div className="hidden md:flex gap-8 text-[0.85rem] font-bold uppercase tracking-widest">
-          <a href="#experience" className="hover:opacity-60 transition-opacity">Experience</a>
-          <a href="#projects" className="hover:opacity-60 transition-opacity">Projects</a>
-          <a href="#contact" className="hover:opacity-60 transition-opacity">Contact</a>
+        <div className="flex items-center gap-4 sm:gap-8">
+          <div className="hidden md:flex items-center gap-8 text-[0.85rem] font-bold uppercase tracking-widest">
+            <a href="#experience" className="hover:opacity-60 transition-opacity">Experience</a>
+            <a href="#projects" className="hover:opacity-60 transition-opacity">Projects</a>
+            <a href="#contact" className="hover:opacity-60 transition-opacity">Contact</a>
+          </div>
+          <ThemeToggle />
         </div>
       </nav>
 
@@ -335,6 +342,14 @@ function Portfolio() {
 
         {/* Projects Section */}
         <section id="projects" className="px-6 sm:px-10 md:px-[60px] mb-20 sm:mb-24 md:mb-[120px]">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 sm:mb-12 gap-6 sm:gap-8">
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tighter uppercase">
+              Portfolio
+            </h2>
+            <p className="text-secondary font-bold text-[0.7rem] sm:text-[0.75rem] uppercase tracking-widest">
+              Selected Works & Projects
+            </p>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {projects.map((project, index) => (
               <motion.div

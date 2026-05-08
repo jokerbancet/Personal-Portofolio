@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { motion } from 'motion/react';
 import { Plus, Trash2, Save, LogOut, Settings, Code, Briefcase, Folder, ChevronRight, Upload, Loader2, Mail, ArrowUp, ArrowDown, Edit3, X } from 'lucide-react';
+import { ThemeToggle, useTheme } from './ThemeToggle';
 
 type Section = 'settings' | 'experience' | 'projects' | 'messages';
 
 export default function AdminDashboard() {
+  useTheme(); // Initialize theme
+
   const [session, setSession] = useState<any>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -118,7 +121,10 @@ export default function AdminDashboard() {
       {/* Sidebar */}
       <aside className="w-full md:w-64 bg-primary text-white p-8 flex flex-col justify-between">
         <div>
-          <div className="font-extrabold text-xl tracking-tighter mb-12">ADMIN.</div>
+          <div className="flex items-center justify-between font-extrabold text-xl tracking-tighter mb-12">
+            <span>ADMIN.</span>
+            <ThemeToggle />
+          </div>
           <nav className="space-y-4">
             <SidebarLink 
               active={activeSection === 'settings'} 

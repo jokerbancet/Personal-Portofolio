@@ -3,15 +3,32 @@
 @theme {
   --font-sans: "Helvetica Neue", Arial, sans-serif;
   
-  --color-primary: #222222;
-  --color-secondary: #7B7B7B;
-  --color-tertiary: #F8F8F8;
-  --color-white: #FFFFFF;
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-tertiary: var(--tertiary);
+  --color-white: var(--white);
+  --color-black: var(--black);
 }
 
 @layer base {
+  :root {
+    --primary: #222222;
+    --secondary: #7B7B7B;
+    --tertiary: #F8F8F8;
+    --white: #FFFFFF;
+    --black: #000000;
+  }
+
+  .dark {
+    --primary: #F0F0F0;
+    --secondary: #A0A0A0;
+    --tertiary: #1C1C1C;
+    --white: #121212;
+    --black: #FFFFFF;
+  }
+
   body {
-    @apply bg-white text-primary font-sans antialiased;
+    @apply bg-white text-primary font-sans antialiased transition-colors duration-200;
   }
 }
 
